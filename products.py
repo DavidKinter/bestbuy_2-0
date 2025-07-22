@@ -1,9 +1,9 @@
 """
 Product module for Best Buy store management system.
 
-This module contains the Product class which represents items available
-in the store. Each product has a name, price, quantity, and active status.
-Products can be purchased, activated/deactivated, and displayed (shown).
+This module contains the Product class and subclasses which
+represent different types of items available in the store. Each product type
+has specific behavior for inventory management and purchasing.
 """
 
 
@@ -122,20 +122,117 @@ class Product:
         return total_price
 
 
+class NonStockedProduct(Product):
+    """
+    Represents a product that doesn't require stock tracking (like software 
+    licenses). Quantity is always 0 but the product remains active.
+    """
+
+    def __init__(self, name: str, price: float) -> None:
+        """
+        Creates a non-stocked product. Note: no quantity parameter needed.
+        """
+        # Call parent's __init__ with quantity always set to 0
+        super().__init__(name, price, quantity=0)
+        self.active = True  # Overrides status: non-stock is always 'active'
+
+    def set_quantity(self, quantity: int) -> None:
+        """
+        Override to prevent quantity changes. Non-stocked products
+        always have quantity 0.
+        """
+        pass  # Do nothing - quantity stays '0'
+
+    def show(self) -> str:
+        """
+        Shows product information with indication it's non-stocked.
+        """
+        # Overrides parent's show method, adding the 'special characteristics'
+        return f"{super().show()} (Non-Stocked)"
+
+    def buy(self, quantity: int) -> float:
+        """
+        Allows purchase of any quantity --> stock is unlimited.
+        """
+        if quantity <= 0:  # Validates quantity is positive
+            raise ValueError("Purchase quantity must be greater than 0")
+        total_price = self.price * quantity  # Non-stock is always available
+        # Note: Quantity not updated as product is 'non-stock'
+        return total_price
+
+
+class LimitedProduct(Product):
+    """
+    Represents a product that can only be purchased in limited quantities
+    per order (e.g., shipping fees that can only be added once).
+    """
+
+    def __init__(
+            self,
+            name: str,
+            price: float,
+            quantity: int,
+            maximum: int
+            ) -> None:
+        """
+        Creates a limited product with a maximum purchase quantity per order.
+        """
+        # Call parent's __init__ first
+        super().__init__(name, price, quantity)
+        # Add the new maximum attribute
+        self.maximum = maximum
+
+    def show(self) -> str:
+        """
+        Shows product information including purchase limit.
+        """
+        # Get parent's show output and add limit info
+        return f"{super().show()} (Limited to {self.maximum} per order)"
+
+    def buy(self, quantity: int) -> float:
+        """
+        Processes purchase with 'maximum quantity' enforcement.
+        """
+        if quantity > self.maximum:  # Check if quantity > limited maximum
+            raise ValueError(
+                f"Cannot purchase more than {self.maximum} "
+                f"of '{self.name}' per order"
+                )
+        return super().buy(quantity)  # If in limit, use parent's buy method
+
+
 if __name__ == "__main__":  # Test code
-    # Create test products
-    bose = Product("Bose QuietComfort Earbuds", price=250, quantity=500)
-    mac = Product("MacBook Air M2", price=1450, quantity=100)
+    # Test the new product types
 
-    # Test buying products
-    print(bose.buy(50))  # Should print 12500.0
-    print(mac.buy(100))  # Should print 145000.0
-    print(mac.is_active())  # Should print False (quantity is now 0)
+    # Test NonStockedProduct
+    print("Testing NonStockedProduct:")
+    windows = NonStockedProduct("Windows License", price=125)
+    print(windows.show())  # Should show (Non-Stocked)
+    print(f"Active: {windows.is_active()}")  # Should be True
+    print(f"Quantity: {windows.get_quantity()}")  # Should be 0
 
-    # Test show method
-    print(bose.show())  # Should show updated quantity
-    print(mac.show())  # Should show 0 quantity
+    # Try to buy licenses
+    total = windows.buy(3)
+    print(f"Bought 3 licenses for ${total}")  # Should be $375
+    print(f"Quantity after purchase: {windows.get_quantity()}")  # Still 0
+    print(f"\n{'=' * 40}\n")
 
-    # Test set_quantity
-    bose.set_quantity(1000)
-    print(bose.show())  # Should show new quantity of 1000
+    # Test LimitedProduct
+    print("Testing LimitedProduct:")
+    shipping = LimitedProduct(
+        "Shipping",
+        price=10,
+        quantity=250,
+        maximum=1
+        )
+    print(shipping.show())  # Should show (Limited to 1 per order)
+
+    # Try to buy within limit
+    total = shipping.buy(1)
+    print(f"Bought 1 shipping for ${total}")  # Should output $10
+
+    # Try to buy more than limit
+    try:
+        shipping.buy(2)  # Should raise error
+    except ValueError as e:
+        print(f"Error: {e}")  # Should print limit error

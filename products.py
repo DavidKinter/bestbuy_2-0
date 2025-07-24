@@ -38,6 +38,9 @@ class Product:
         else:
             self.active = False
 
+        # Initialize promotion as None
+        self.promotion = None
+
     def get_quantity(self) -> int:
         """
         Returns the current quantity of the product.
@@ -72,6 +75,18 @@ class Product:
         """
         self.active = False
 
+    def get_promotion(self):
+        """
+        Returns the current promotion for this product.
+        """
+        return self.promotion
+
+    def set_promotion(self, promotion) -> None:
+        """
+        Sets or removes a promotion for this product.
+        """
+        self.promotion = promotion
+
     def show(self) -> str:
         """
         Returns a string representation of the product.
@@ -79,6 +94,9 @@ class Product:
         product_info = (f"{self.name}, "
                         f"Price: {self.price}, "
                         f"Quantity: {self.quantity}")
+        # Add promotion info if exists
+        if self.promotion:
+            product_info += f", Promotion: {self.promotion.name}"
         return product_info
 
     def get_name(self) -> str:
@@ -111,8 +129,13 @@ class Product:
         if quantity > self.quantity:
             raise ValueError(f"Only {self.quantity} items available")
 
-        # Calculates the total price
-        total_price = self.price * quantity
+        # Calculate price with promotion if exists
+        if self.promotion:
+            # Use promotion to calculate price
+            total_price = self.promotion.apply_promotion(self, quantity)
+        else:
+            # No promotion - use regular price
+            total_price = self.price * quantity
 
         # Updates the quantity
         new_quantity = self.quantity - quantity
@@ -156,7 +179,11 @@ class NonStockedProduct(Product):
         """
         if quantity <= 0:  # Validates quantity is positive
             raise ValueError("Purchase quantity must be greater than 0")
-        total_price = self.price * quantity  # Non-stock is always available
+        # Calculate price with promotion if exists
+        if self.promotion:
+            total_price = self.promotion.apply_promotion(self, quantity)
+        else:
+            total_price = self.price * quantity
         # Note: Quantity not updated as product is 'non-stock'
         return total_price
 

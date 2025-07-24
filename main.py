@@ -6,6 +6,7 @@ can view products, check inventory totals, make orders, and quit the program.
 """
 
 import products
+import promotions
 import store
 
 
@@ -154,6 +155,10 @@ def check_availability(product, requested_qty: int, cart_qty: int) -> bool:
     """
     Checks if requested quantity is available based on shopping cart.
     """
+    # Check if this is a NonStockedProduct (always available)
+    if isinstance(product, products.NonStockedProduct):
+        return True
+    
     available_qty = product.get_quantity()
     remaining_qty = available_qty - cart_qty
     if requested_qty > remaining_qty:
@@ -296,10 +301,32 @@ def main() -> None:
             "Google Pixel 7",
             price=500,
             quantity=250
+            ),
+        products.NonStockedProduct(
+            "Windows License",
+            price=125
+            ),
+        products.LimitedProduct(
+            "Shipping",
+            price=10,
+            quantity=250,
+            maximum=1
             )
         ]
+
+    # Create promotion catalog
+    second_half_price = promotions.SecondHalfPrice("Second Half price!")
+    third_one_free = promotions.ThirdOneFree("Third One Free!")
+    thirty_percent = promotions.PercentDiscount("30% off!", percent=30)
+
+    # Add promotions to products
+    product_list[0].set_promotion(second_half_price)
+    product_list[1].set_promotion(third_one_free)
+    product_list[3].set_promotion(thirty_percent)
+
     # Creates store
     best_buy = store.Store(product_list)
+
     # Starts the menu
     start(best_buy)
 
